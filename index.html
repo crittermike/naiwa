@@ -336,23 +336,19 @@ function buildReverie(){
   const prof=[[0.02,-0.10],[0.30,-0.06],[0.52,0.02],[0.68,0.16],[0.77,0.34],[0.78,0.52],[0.73,0.70],[0.63,0.86],[0.52,1.00],[0.44,1.10]];
   const trunk=new THREE.Mesh(new THREE.LatheGeometry(prof.map(p=>new THREE.Vector2(p[0],p[1])),72),M.body);
   trunk.castShadow=true; trunk.receiveShadow=true; torso.add(trunk);
-  const bp=sphere(0.64,M.belly,44); bp.scale.set(0.84,1.0,0.58); bp.position.set(0,0.26,0.42); torso.add(bp);
+  // belly patch removed — uniform body (was a low pale bulge)
 
   const head=new THREE.Group(); head.position.set(0,1.05,0); torso.add(head); rig.head=head;
   const skull=sphere(0.47,M.body,44); skull.scale.set(1.06,1.0,1.06); skull.position.set(0,0.30,0); skull.castShadow=true; head.add(skull);
-  const snout=sphere(0.24,M.body,32); snout.scale.set(0.8,0.66,1.15); snout.position.set(0,0.16,0.44); snout.castShadow=true; head.add(snout);
-  for(const sx of [-1,1]){const n=sphere(0.028,M.limb,12); n.position.set(0.06*sx,0.19,0.63); head.add(n);}
-  const mouth=new THREE.Mesh(new THREE.TorusGeometry(0.085,0.014,8,20,Math.PI*0.85),M.limb);
-  mouth.rotation.set(Math.PI*0.5,0,Math.PI); mouth.position.set(0,-0.02,0.50); head.add(mouth);
+  // Human face decal mapped onto the front of the head
+  const faceTex=new THREE.TextureLoader().load('face.png');
+  faceTex.colorSpace=THREE.SRGBColorSpace; faceTex.anisotropy=8;
+  faceTex.wrapS=THREE.RepeatWrapping; faceTex.repeat.x=-1; faceTex.offset.x=1; // un-mirror across the spherical cap
+  const faceMat=new THREE.MeshStandardMaterial({map:faceTex,emissiveMap:faceTex,emissive:0xffffff,emissiveIntensity:0.34,roughness:0.85,metalness:0,transparent:true,depthWrite:false});
+  const cap=new THREE.Mesh(new THREE.SphereGeometry(0.485,80,80,Math.PI/2-0.66,1.32,Math.PI/2-0.75,0.95),faceMat);
+  cap.scale.set(1.06,1.0,1.06); cap.position.set(0,0.30,0); cap.renderOrder=3; head.add(cap);
+  rig.faceTex=faceTex; rig.face=cap;
   rig.eyes=[];
-  for(const sx of [-1,1]){
-    const eg=new THREE.Group(); eg.position.set(0.31*sx,0.40,0.20); eg.lookAt(new THREE.Vector3(1.3*sx,1.7,2.2)); head.add(eg);
-    const w=sphere(0.135,M.eyeW,28); w.scale.set(1,1.05,0.8); eg.add(w);
-    const ir=sphere(0.086,M.iris,24); ir.position.set(0,0,0.075); eg.add(ir);
-    const pu=sphere(0.046,M.pupil,20); pu.position.set(0,0,0.12); eg.add(pu);
-    const sh=sphere(0.02,M.shine,10); sh.position.set(-0.03*sx,0.04,0.14); eg.add(sh);
-    rig.eyes.push(eg);
-  }
   function arm(sx,target){
     const g=new THREE.Group(); const shoulder=new THREE.Vector3(0.6*sx,0.72,0.34); g.position.copy(shoulder); torso.add(g);
     const dir=target.clone().sub(shoulder); const len=dir.length();
@@ -396,7 +392,7 @@ function applyPose(P,blink){
   rig.armL.rotation.set(P.aLx,P.aLy,P.aLz);
   rig.armR.rotation.set(P.aRx,P.aRy,P.aRz);
   rig.legL.rotation.x=P.legL; rig.legR.rotation.x=P.legR;
-  rig.eyes[0].scale.y=blink; rig.eyes[1].scale.y=blink;
+  if(rig.eyes[0]){rig.eyes[0].scale.y=blink; rig.eyes[1].scale.y=blink;}
 }
 const DANCES={
   bop(ph){const T=Object.assign({},REST);const b=Math.abs(Math.sin(ph));
